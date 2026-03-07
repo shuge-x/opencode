@@ -9,5 +9,6 @@
   "tools": {
     "github-triage": false,
     "github-pr-search": false,
+    "duckdb": true,
   },
 }
