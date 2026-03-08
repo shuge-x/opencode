@@ -86,6 +86,18 @@ export type Platform = {
 
   /** Read image from clipboard (desktop only) */
   readClipboardImage?(): Promise<File | null>
+
+  /** Upload files to a directory (desktop only) */
+  uploadFiles?(targetDir: string): Promise<number>
+
+  /** Upload a folder to a directory (desktop only) */
+  uploadFolder?(targetDir: string): Promise<boolean>
+
+  /** Download a file with save dialog (desktop only) */
+  downloadFile?(filePath: string): Promise<boolean>
+
+  /** Download multiple files with folder selection (desktop only) */
+  downloadFiles?(filePaths: string[]): Promise<number>
 }
 
 export type DisplayBackend = "auto" | "wayland"

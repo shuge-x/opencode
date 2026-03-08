@@ -19,7 +19,7 @@ import { fetch as tauriFetch } from "@tauri-apps/plugin-http"
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification"
 import { type as ostype } from "@tauri-apps/plugin-os"
 import { relaunch } from "@tauri-apps/plugin-process"
-import { open as shellOpen } from "@tauri-apps/plugin-shell"
+import { open as shellOpen, Command } from "@tauri-apps/plugin-shell"
 import { Store } from "@tauri-apps/plugin-store"
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import { createResource, type JSX, onCleanup, onMount, Show } from "solid-js"
@@ -399,6 +399,248 @@ const createPlatform = (): Platform => {
           )
         }, "image/png")
       })
+    },
+
+    async uploadFiles(targetDir: string) {
+      try {
+        const selected = await open({
+          multiple: true,
+          directory: false,
+          defaultPath: targetDir,
+          title: t("desktop.dialog.uploadFiles"),
+        })
+
+        if (!selected) return 0
+
+        const files = Array.isArray(selected) ? selected : [selected]
+        let successCount = 0
+
+        for (const file of files) {
+          try {
+            const filename = file.split("/").pop() || file.split("\\").pop() || "file"
+            const target = os === "windows" 
+              ? `${targetDir}\\${filename}`
+              : `${targetDir}/${filename}`
+            
+            // Use platform-specific copy command
+            if (os === "windows") {
+              const cmd = new Command("cmd", ["/C", "copy", file, target])
+              await cmd.execute()
+            } else {
+              const cmd = new Command("cp", [file, target])
+              await cmd.execute()
+            }
+            
+            successCount++
+          } catch (error) {
+            console.error(`Failed to upload file:`, error)
+          }
+        }
+
+        return successCount
+      } catch (error) {
+        console.error("Upload failed:", error)
+        return 0
+      }
+    },
+
+    async uploadFolder(targetDir: string) {
+      try {
+        const selected = await open({
+          multiple: false,
+          directory: true,
+          defaultPath: targetDir,
+          title: t("desktop.dialog.uploadFolder"),
+        })
+
+        if (!selected) return false
+
+        const foldername = selected.split("/").pop() || selected.split("\\").pop() || "folder"
+        const target = os === "windows"
+          ? `${targetDir}\\${foldername}`
+          : `${targetDir}/${foldername}`
+
+        // Use platform-specific copy command
+        if (os === "windows") {
+          const cmd = new Command("cmd", ["/C", "xcopy", selected, target, "/E", "/I", "/Y"])
+          await cmd.execute()
+        } else {
+          const cmd = new Command("cp", ["-r", selected, target])
+          await cmd.execute()
+        }
+        
+        return true
+      } catch (error) {
+        console.error("Folder upload failed:", error)
+        return false
+      }
+    },
+
+    async downloadFile(filePath: string) {
+      try {
+        const filename = filePath.split("/").pop() || filePath.split("\\").pop() || "file"
+        const savePath = await save({
+          title: t("desktop.dialog.saveFile"),
+          defaultPath: filename,
+        })
+
+        if (!savePath) return false
+
+        // Use platform-specific copy command
+        if (os === "windows") {
+          const cmd = new Command("cmd", ["/C", "copy", filePath, savePath])
+          await cmd.execute()
+        } else {
+          const cmd = new Command("cp", [filePath, savePath])
+          await cmd.execute()
+        }
+        
+        return true
+      } catch (error) {
+        console.error("Download failed:", error)
+        return false
+      }
+    },
+
+    async downloadFiles(filePaths: string[]) {
+      try {
+        const folder = await open({
+          directory: true,
+          multiple: false,
+          title: t("desktop.dialog.selectDownloadFolder"),
+        })
+
+        if (!folder) return 0
+
+        let successCount = 0
+
+        for (const filePath of filePaths) {
+          try {
+            const filename = filePath.split("/").pop() || filePath.split("\\").pop() || "file"
+            const target = os === "windows"
+              ? `${folder}\\${filename}`
+              : `${folder}/${filename}`
+
+            // Use platform-specific copy command
+            if (os === "windows") {
+              const cmd = new Command("cmd", ["/C", "copy", filePath, target])
+              await cmd.execute()
+            } else {
+              const cmd = new Command("cp", [filePath, target])
+              await cmd.execute()
+            }
+            
+            successCount++
+          } catch (error) {
+            console.error(`Failed to download ${filename}:`, error)
+          }
+        }
+
+        return successCount
+      } catch (error) {
+        console.error("Batch download failed:", error)
+        return 0
+      }
+    },
+  }
+}
+        }
+
+        return successCount
+      } catch (error) {
+        console.error("Upload failed:", error)
+        return 0
+      }
+    },
+
+    async uploadFolder(targetDir: string) {
+      try {
+        const selected = await open({
+          multiple: false,
+          directory: true,
+          defaultPath: targetDir,
+          title: "选择要上传的文件夹",
+        })
+
+        if (!selected) return false
+
+        const foldername = selected.split("/").pop() || selected.split("\\").pop() || selected
+        const target = os === "windows"
+          ? `${targetDir}\\${foldername}`
+          : `${targetDir}/${foldername}`
+
+        const copyCmd = os === "windows"
+          ? `xcopy "${selected}" "${target}" /E /I /Y`
+          : `cp -r "${selected}" "${target}"`
+
+        await commands.executeCommand(copyCmd).catch(() => null)
+        
+        return true
+      } catch (error) {
+        console.error("Folder upload failed:", error)
+        return false
+      }
+    },
+
+    async downloadFile(filePath: string) {
+      try {
+        const filename = filePath.split("/").pop() || filePath.split("\\").pop() || filePath
+        const savePath = await save({
+          title: "保存文件",
+          defaultPath: filename,
+        })
+
+        if (!savePath) return false
+
+        const copyCmd = os === "windows"
+          ? `copy "${filePath}" "${savePath}"`
+          : `cp "${filePath}" "${savePath}"`
+
+        await commands.executeCommand(copyCmd).catch(() => null)
+        
+        return true
+      } catch (error) {
+        console.error("Download failed:", error)
+        return false
+      }
+    },
+
+    async downloadFiles(filePaths: string[]) {
+      try {
+        const folder = await open({
+          multiple: false,
+          directory: true,
+          title: "选择保存位置",
+        })
+
+        if (!folder) return 0
+
+        let successCount = 0
+
+        for (const filePath of filePaths) {
+          try {
+            const filename = filePath.split("/").pop() || filePath.split("\\").pop() || filePath
+            const target = os === "windows"
+              ? `${folder}\\${filename}`
+              : `${folder}/${filename}`
+
+            const copyCmd = os === "windows"
+              ? `copy "${filePath}" "${target}"`
+              : `cp "${filePath}" "${target}"`
+
+            await commands.executeCommand(copyCmd).catch(() => null)
+            
+            successCount++
+          } catch (error) {
+            console.error(`Failed to download ${filePath}:`, error)
+          }
+        }
+
+        return successCount
+      } catch (error) {
+        console.error("Batch download failed:", error)
+        return 0
+      }
     },
   }
 }

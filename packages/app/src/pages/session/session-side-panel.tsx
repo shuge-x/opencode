@@ -441,6 +441,24 @@ export function SessionSidePanel(props: {
                 <Tabs.Content value="all" class="bg-background-stronger px-3 py-0">
                   <div class="flex items-center justify-between mb-2">
                     <div class="text-12-regular text-text-weak">{language.t("session.files.all")}</div>
+                    <Show when={platform.uploadFiles}>
+                      <button
+                        class="p-1 hover:bg-surface-raised-base-hover rounded"
+                        onClick={async () => {
+                          try {
+                            const count = await platform.uploadFiles!(sync.project!.path)
+                            if (count > 0) {
+                              console.log(`Uploaded ${count} files`)
+                            }
+                          } catch (error) {
+                            console.error("Upload failed:", error)
+                          }
+                        }}
+                        title="Upload files"
+                      >
+                        <Icon name="upload" class="w-4 h-4 text-icon-weak" />
+                      </button>
+                    </Show>
                   </div>
                   <Switch>
                     <Match when={nofiles()}>{empty(language.t("session.files.empty"))}</Match>
