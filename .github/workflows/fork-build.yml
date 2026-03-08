@@ -76,6 +76,11 @@ jobs:
           mkdir -p src-tauri/sidecars
           cp ../opencode/dist/opencode-darwin-arm64/bin/opencode src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
           chmod +x src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
+          # Copy DuckDB dylib
+          if [ -f ../opencode/dist/opencode-darwin-arm64/bin/libduckdb.dylib ]; then
+            cp ../opencode/dist/opencode-darwin-arm64/bin/libduckdb.dylib src-tauri/sidecars/libduckdb-aarch64-apple-darwin
+            echo "Copied libduckdb.dylib"
+          fi
           bun x vite build
         env:
           RUST_TARGET: aarch64-apple-darwin
@@ -137,6 +142,11 @@ jobs:
           mkdir -p src-tauri/sidecars
           cp ../opencode/dist/opencode-windows-x64-baseline/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           chmod +x src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe || true
+          # Copy DuckDB DLL
+          if [ -f ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll ]; then
+            cp ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll src-tauri/sidecars/duckdb-x86_64-pc-windows-msvc.dll
+            echo "Copied duckdb.dll"
+          fi
           bun x vite build
         env:
           RUST_TARGET: x86_64-pc-windows-msvc
