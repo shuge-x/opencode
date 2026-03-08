@@ -27,10 +27,10 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build CLI (single platform)
+      - name: Build CLI (all platforms)
         run: |
           cd packages/opencode
-          bun run build --single
+          bun run build
         env:
           OPENCODE_VERSION: "1.2.21"
 
@@ -70,7 +70,8 @@ jobs:
       - name: Prepare sidecar
         run: |
           cd packages/desktop
-          bun ./scripts/predev.ts
+          mkdir -p src-tauri/sidecars
+          cp ../opencode/dist/opencode-darwin-arm64/bin/opencode src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
         env:
           RUST_TARGET: aarch64-apple-darwin
 
@@ -120,7 +121,8 @@ jobs:
       - name: Prepare sidecar
         run: |
           cd packages/desktop
-          bun ./scripts/predev.ts
+          mkdir -p src-tauri/sidecars
+          cp ../opencode/dist/opencode-windows-x64-baseline/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
         env:
           RUST_TARGET: x86_64-pc-windows-msvc
 
