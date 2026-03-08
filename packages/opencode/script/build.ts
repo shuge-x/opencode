@@ -147,6 +147,33 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
   await $`bun install --os="*" --cpu="*" @duckdb/node-api@${pkg.dependencies["@duckdb/node-api"]}`
+  
+  // Fix DuckDB .node file to use @executable_path for dylib lookup
+  // This must be done BEFORE Bun.build() embeds the .node files
+  const duckdbPlatforms = [
+    { os: "darwin", arch: "arm64", dylib: "libduckdb.dylib" },
+    { os: "darwin", arch: "x64", dylib: "libduckdb.dylib" },
+    { os: "linux", arch: "arm64", dylib: "libduckdb.so" },
+    { os: "linux", arch: "x64", dylib: "libduckdb.so" },
+    { os: "win32", arch: "x64", dylib: "duckdb.dll" },
+  ]
+  
+  for (const platform of duckdbPlatforms) {
+    const nodeFile = path.resolve(
+      dir,
+      `node_modules/@duckdb/node-bindings-${platform.os}-${platform.arch}/duckdb.node`
+    )
+    
+    if (fs.existsSync(nodeFile) && platform.os === "darwin") {
+      console.log(`Patching ${nodeFile} to use @executable_path`)
+      try {
+        // Change the dylib path from @rpath to @executable_path
+        await $`install_name_tool -change @rpath/${platform.dylib} @executable_path/${platform.dylib} ${nodeFile}`
+      } catch (err) {
+        console.warn(`Warning: Could not patch ${nodeFile}: ${err}`)
+      }
+    }
+  }
 }
 for (const item of targets) {
   const name = [
