@@ -142,7 +142,11 @@ jobs:
           mkdir -p src-tauri/sidecars
           cp ../opencode/dist/opencode-windows-x64-baseline/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           chmod +x src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe || true
-          # Note: Windows DLL will be handled separately - Windows auto-loads DLLs from exe directory
+          # Copy DuckDB DLL to sidecars directory
+          if [ -f ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll ]; then
+            cp ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll src-tauri/sidecars/
+            echo "Copied duckdb.dll to sidecars/"
+          fi
           bun x vite build
         env:
           RUST_TARGET: x86_64-pc-windows-msvc
@@ -161,9 +165,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Copy DuckDB DLL to Windows build output
+        shell: bash
+        run: |
+          cd packages/desktop
+          # Copy DLL to the release directory (where the main exe is)
+          if [ -f src-tauri/sidecars/duckdb.dll ]; then
+            cp src-tauri/sidecars/duckdb.dll src-tauri/target/x86_64-pc-windows-msvc/release/
+            echo "Copied duckdb.dll to release directory"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: opencode-desktop-windows-x64
           path: |
             packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
             packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/*.exe
+            packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/*.dll
