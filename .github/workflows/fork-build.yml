@@ -58,7 +58,7 @@ jobs:
       - name: Build CLI for Windows
         run: |
           cd packages/opencode
-          bun run build --single --baseline
+          bun run build --single
         env:
           OPENCODE_VERSION: "1.2.21"
 
@@ -168,11 +168,11 @@ jobs:
         run: |
           cd packages/desktop
           mkdir -p src-tauri/sidecars
-          cp ../opencode/dist/opencode-windows-x64-baseline/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
+          cp ../opencode/dist/opencode-windows-x64/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           chmod +x src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe || true
           # Copy DuckDB DLL to sidecars directory
-          if [ -f ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll ]; then
-            cp ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll src-tauri/sidecars/
+          if [ -f ../opencode/dist/opencode-windows-x64/bin/duckdb.dll ]; then
+            cp ../opencode/dist/opencode-windows-x64/bin/duckdb.dll src-tauri/sidecars/
             echo "Copied duckdb.dll to sidecars/"
           fi
           bun x vite build
