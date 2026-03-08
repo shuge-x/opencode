@@ -103,7 +103,11 @@ export const DuckDBTool: Tool.Info = {
 
           return lines.join("\n")
         } finally {
-          await connection.disconnect()
+          try {
+            await connection.close()
+          } catch (e) {
+            // Ignore close errors
+          }
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
