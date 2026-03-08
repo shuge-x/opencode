@@ -8,10 +8,9 @@ on:
         type: choice
         options:
           - macos-arm64
-          - macos-x64
           - windows-x64
-          - all
-        default: all
+          - both
+        default: both
 
 jobs:
   build-cli:
@@ -42,7 +41,7 @@ jobs:
 
   build-tauri-macos-arm:
     needs: build-cli
-    if: inputs.target == 'all' || inputs.target == 'macos-arm64'
+    if: inputs.target == 'both' || inputs.target == 'macos-arm64'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
@@ -90,59 +89,9 @@ jobs:
             packages/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
             packages/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
 
-  build-tauri-macos-x64:
-    needs: build-cli
-    if: inputs.target == 'all' || inputs.target == 'macos-x64'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.10"
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin
-
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: packages/desktop/src-tauri
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: opencode-cli
-          path: packages/opencode/dist
-
-      - name: Prepare sidecar
-        run: |
-          cd packages/desktop
-          bun ./scripts/predev.ts
-        env:
-          RUST_TARGET: x86_64-apple-darwin
-
-      - name: Build Tauri
-        uses: tauri-apps/tauri-action@v0
-        with:
-          projectPath: packages/desktop
-          args: --target x86_64-apple-darwin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: opencode-desktop-macos-x64
-          path: |
-            packages/desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
-            packages/desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
-
   build-tauri-windows:
     needs: build-cli
-    if: inputs.target == 'all' || inputs.target == 'windows-x64'
+    if: inputs.target == 'both' || inputs.target == 'windows-x64'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
