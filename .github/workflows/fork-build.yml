@@ -34,8 +34,8 @@ jobs:
           mkdir -p dist/duckdb
           curl -L https://install.duckdb.org/v1.4.4/duckdb_cli-osx-universal.zip -o duckdb.zip
           unzip duckdb.zip -d dist/duckdb/
-          mv dist/duckdb/duckdb dist/duckdb/duckdb-universal-apple-darwin
-          chmod +x dist/duckdb/duckdb-universal-apple-darwin
+          mv dist/duckdb/duckdb dist/duckdb/duckdb-aarch64-apple-darwin
+          chmod +x dist/duckdb/duckdb-aarch64-apple-darwin
           rm duckdb.zip
           echo "Downloaded DuckDB CLI for macOS"
 
@@ -126,9 +126,9 @@ jobs:
           cp ../opencode/dist/opencode-darwin-arm64/bin/opencode src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
           chmod +x src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
           # Copy DuckDB CLI
-          if [ -f ../opencode/dist/duckdb/duckdb-universal-apple-darwin ]; then
-            cp ../opencode/dist/duckdb/duckdb-universal-apple-darwin src-tauri/sidecars/
-            chmod +x src-tauri/sidecars/duckdb-universal-apple-darwin
+          if [ -f ../opencode/dist/duckdb/duckdb-aarch64-apple-darwin ]; then
+            cp ../opencode/dist/duckdb/duckdb-aarch64-apple-darwin src-tauri/sidecars/
+            chmod +x src-tauri/sidecars/duckdb-aarch64-apple-darwin
             echo "Copied DuckDB CLI"
           fi
           bun x vite build
@@ -193,8 +193,8 @@ jobs:
           cp ../opencode/dist/opencode-windows-x64/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           chmod +x src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe || true
           # Copy DuckDB CLI
-          if [ -f ../opencode/dist/duckdb/duckdb.exe ]; then
-            cp ../opencode/dist/duckdb/duckdb.exe src-tauri/sidecars/duckdb-x86_64-pc-windows-msvc.exe
+          if [ -f ../opencode/dist/duckdb/duckdb-x86_64-pc-windows-msvc.exe ]; then
+            cp ../opencode/dist/duckdb/duckdb-x86_64-pc-windows-msvc.exe src-tauri/sidecars/
             chmod +x src-tauri/sidecars/duckdb-x86_64-pc-windows-msvc.exe || true
             echo "Copied DuckDB CLI"
           fi

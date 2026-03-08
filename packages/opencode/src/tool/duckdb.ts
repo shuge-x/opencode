@@ -11,7 +11,7 @@ const DUCKDB_CLI_NAME = process.platform === "win32" ? "duckdb.exe" : "duckdb"
 
 function getDuckDBCliPath(): string {
   const sidecarName = process.platform === "darwin" 
-    ? "duckdb-universal-apple-darwin"
+    ? "duckdb-aarch64-apple-darwin"
     : process.platform === "win32"
     ? "duckdb-x86_64-pc-windows-msvc.exe"
     : `duckdb-${process.arch}-linux-gnu`

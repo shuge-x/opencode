@@ -35,7 +35,7 @@
     "targets": ["deb", "rpm", "dmg", "nsis", "app"],
     "externalBin": [
       "sidecars/opencode-cli",
-      "sidecars/libduckdb"
+      "sidecars/duckdb"
     ],
     "linux": {
       "rpm": {
