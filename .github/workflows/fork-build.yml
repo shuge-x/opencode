@@ -142,11 +142,7 @@ jobs:
           mkdir -p src-tauri/sidecars
           cp ../opencode/dist/opencode-windows-x64-baseline/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           chmod +x src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe || true
-          # Copy DuckDB DLL
-          if [ -f ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll ]; then
-            cp ../opencode/dist/opencode-windows-x64-baseline/bin/duckdb.dll src-tauri/sidecars/duckdb-x86_64-pc-windows-msvc.dll
-            echo "Copied duckdb.dll"
-          fi
+          # Note: Windows DLL will be handled separately - Windows auto-loads DLLs from exe directory
           bun x vite build
         env:
           RUST_TARGET: x86_64-pc-windows-msvc

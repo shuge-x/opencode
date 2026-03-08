@@ -266,6 +266,21 @@ for (const item of targets) {
     } else {
       console.warn(`  Warning: libduckdb.so not found at ${soSource}`)
     }
+  } else if (item.os === "win32") {
+    // Windows: Copy duckdb.dll
+    const duckdbBindingsDir = path.resolve(
+      dir,
+      `node_modules/@duckdb/node-bindings-win32-${item.arch}`
+    )
+    const dllSource = path.join(duckdbBindingsDir, "duckdb.dll")
+    const dllDest = `dist/${name}/bin/duckdb.dll`
+    
+    if (fs.existsSync(dllSource)) {
+      console.log(`  Copying duckdb.dll for ${name}`)
+      await $`cp ${dllSource} ${dllDest}`
+    } else {
+      console.warn(`  Warning: duckdb.dll not found at ${dllSource}`)
+    }
   }
   
   await Bun.file(`dist/${name}/package.json`).write(
