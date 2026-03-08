@@ -1,0 +1,33 @@
+Execute SQL queries on DuckDB databases without requiring a separate DuckDB installation.
+
+This tool provides a built-in DuckDB instance with full SQL query support, allowing you to:
+
+- Execute any SQL query (SELECT, CREATE, INSERT, UPDATE, DELETE, etc.)
+- Work with in-memory databases for temporary data processing
+- Create and manage file-based databases for persistent storage
+- Import/export data in various formats (CSV, JSON, Parquet, etc.)
+- Analyze large datasets efficiently with DuckDB's columnar engine
+
+Usage examples:
+
+1. In-memory database (temporary):
+   { "query": "SELECT 1 + 1 AS result" }
+   
+2. File-based database (persistent):
+   { "query": "CREATE TABLE users (id INTEGER, name VARCHAR)", "database": "mydb.duckdb" }
+   { "query": "INSERT INTO users VALUES (1, 'Alice')", "database": "mydb.duckdb" }
+   { "query": "SELECT * FROM users", "database": "mydb.duckdb" }
+
+3. Read CSV files:
+   { "query": "SELECT * FROM read_csv('data.csv')" }
+
+4. Read Parquet files:
+   { "query": "SELECT * FROM read_parquet('data.parquet')" }
+
+5. Read JSON files:
+   { "query": "SELECT * FROM read_json_auto('data.json')" }
+
+The database parameter accepts both relative paths (relative to the project directory) and absolute paths. 
+If the database file doesn't exist, it will be created automatically.
+
+Note: Each database file maintains a separate connection. In-memory databases are temporary and lost when the session ends.
