@@ -1,19 +1,35 @@
 import z from "zod"
 import { Tool } from "./tool"
-import { DuckDBInstance } from "@duckdb/node-api"
+import { $ } from "bun"
 import path from "path"
+import fs from "fs"
 import DESCRIPTION from "./duckdb.txt"
 import { Instance } from "../project/instance"
 
-const databases = new Map<string, DuckDBInstance>()
+const DUCKDB_VERSION = "1.4.4"
+const DUCKDB_CLI_NAME = process.platform === "win32" ? "duckdb.exe" : "duckdb"
 
-function formatValue(value: any): string {
-  if (value === null || value === undefined) return "NULL"
-  if (typeof value === "string") return value
-  if (typeof value === "number" || typeof value === "boolean") return String(value)
-  if (value instanceof Date) return value.toISOString()
-  if (typeof value === "object") return JSON.stringify(value)
-  return String(value)
+function getDuckDBCliPath(): string {
+  const sidecarName = process.platform === "darwin" 
+    ? "duckdb-universal-apple-darwin"
+    : process.platform === "win32"
+    ? "duckdb-x86_64-pc-windows-msvc.exe"
+    : `duckdb-${process.arch}-linux-gnu`
+  
+  // First check sidecars directory
+  const sidecarPath = path.join(Instance.directory, "sidecars", sidecarName)
+  if (fs.existsSync(sidecarPath)) {
+    return sidecarPath
+  }
+  
+  // Then check bin directory (for CLI builds)
+  const binPath = path.join(Instance.directory, "bin", DUCKDB_CLI_NAME)
+  if (fs.existsSync(binPath)) {
+    return binPath
+  }
+  
+  // Fallback to system duckdb
+  return "duckdb"
 }
 
 export const DuckDBTool: Tool.Info = {
@@ -22,96 +38,56 @@ export const DuckDBTool: Tool.Info = {
     description: DESCRIPTION,
     parameters: z.object({
       query: z.string().describe("SQL query to execute"),
-      database: z
-        .string()
-        .describe(
-          "Path to .duckdb file for persistent storage. If not provided, uses in-memory database. The file will be created if it doesn't exist.",
-        )
-        .optional(),
     }),
-    execute: async (args: { query: string; database?: string }, ctx) => {
-      const dbKey = args.database || "in-memory"
-
+    generate: async (args) => {
+      const { query } = args
+      const cliPath = getDuckDBCliPath()
+      const dbPath = path.join(Instance.directory, "data.db")
+      
+      // Ensure directory exists
+      const dbDir = path.dirname(dbPath)
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true })
+      }
+      
+      // Create a temporary SQL file for the query
+      // This avoids shell escaping issues with complex queries
+      const tempFile = path.join(Instance.directory, ".duckdb_query.sql")
+      fs.writeFileSync(tempFile, query, "utf-8")
+      
       try {
-        if (args.database) {
-          let dbPath = args.database
-          if (!path.isAbsolute(dbPath)) {
-            dbPath = path.resolve(Instance.directory, dbPath)
-          }
-
-          if (!databases.has(dbKey)) {
-            databases.set(dbKey, await DuckDBInstance.create(dbPath))
-          }
-        } else {
-          if (!databases.has(dbKey)) {
-            databases.set(dbKey, await DuckDBInstance.create())
+        // Execute query using DuckDB CLI
+        // -f: read SQL from file
+        // -noheader: don't print column headers
+        // -markdown: output in markdown table format
+        const result = await $`${cliPath} -noheader -markdown "${dbPath}" -f "${tempFile}"`.quiet()
+        
+        const output = result.stdout.toString().trim()
+        const error = result.stderr.toString().trim()
+        
+        if (result.exitCode !== 0) {
+          return {
+            ok: false,
+            result: error || `DuckDB exited with code ${result.exitCode}`,
           }
         }
-
-        const db = databases.get(dbKey)!
-        const connection = await db.connect()
-
-        try {
-          const result = await connection.run(args.query)
-          const rows = await result.getRows()
-          const columns = await result.columnNames()
-
-          if (rows.length === 0) {
-            return "Query executed successfully. No rows returned."
-          }
-
-          const maxRows = 100
-          const displayRows = rows.slice(0, maxRows)
-
-          const lines: string[] = []
-          lines.push("Columns: " + columns.join(", "))
-          lines.push("")
-          lines.push(`Results (${rows.length} rows):`)
-          lines.push("")
-
-          for (const row of displayRows) {
-            lines.push(
-              row
-                .map((value, idx) => {
-                  const formatted = formatValue(value)
-                  return `${columns[idx]}: ${formatted}`
-                })
-                .join(" | "),
-            )
-          }
-
-          if (rows.length > maxRows) {
-            lines.push("")
-            lines.push(`... and ${rows.length - maxRows} more rows`)
-          }
-
-          lines.push("")
-          lines.push("JSON representation:")
-          lines.push(
-            JSON.stringify(
-              displayRows.map((row) => {
-                const obj: Record<string, any> = {}
-                columns.forEach((col, idx) => {
-                  obj[col] = row[idx]
-                })
-                return obj
-              }),
-              null,
-              2,
-            ),
-          )
-
-          return lines.join("\n")
-        } finally {
-          try {
-            await connection.close()
-          } catch (e) {
-            // Ignore close errors
-          }
+        
+        return {
+          ok: true,
+          result: output || "Query executed successfully",
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        throw new Error(`DuckDB query failed: ${errorMessage}\nQuery: ${args.query}`)
+        return {
+          ok: false,
+          result: `Failed to execute query: ${error instanceof Error ? error.message : String(error)}`,
+        }
+      } finally {
+        // Clean up temp file
+        try {
+          fs.unlinkSync(tempFile)
+        } catch {
+          // Ignore cleanup errors
+        }
       }
     },
   }),

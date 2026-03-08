@@ -28,6 +28,17 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Download DuckDB CLI for macOS
+        run: |
+          cd packages/opencode
+          mkdir -p dist/duckdb
+          curl -L https://install.duckdb.org/v1.4.4/duckdb_cli-osx-universal.zip -o duckdb.zip
+          unzip duckdb.zip -d dist/duckdb/
+          mv dist/duckdb/duckdb dist/duckdb/duckdb-universal-apple-darwin
+          chmod +x dist/duckdb/duckdb-universal-apple-darwin
+          rm duckdb.zip
+          echo "Downloaded DuckDB CLI for macOS"
+
       - name: Build CLI for macOS
         run: |
           cd packages/opencode
@@ -54,6 +65,16 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Download DuckDB CLI for Windows
+        run: |
+          cd packages/opencode
+          mkdir -p dist/duckdb
+          curl -L https://install.duckdb.org/v1.4.4/duckdb_cli-windows-amd64.zip -o duckdb.zip
+          unzip duckdb.zip -d dist/duckdb/
+          mv dist/duckdb/duckdb.exe dist/duckdb/duckdb-x86_64-pc-windows-msvc.exe
+          rm duckdb.zip
+          echo "Downloaded DuckDB CLI for Windows"
 
       - name: Build CLI for Windows
         run: |
@@ -104,10 +125,11 @@ jobs:
           mkdir -p src-tauri/sidecars
           cp ../opencode/dist/opencode-darwin-arm64/bin/opencode src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
           chmod +x src-tauri/sidecars/opencode-cli-aarch64-apple-darwin
-          # Copy DuckDB dylib
-          if [ -f ../opencode/dist/opencode-darwin-arm64/bin/libduckdb.dylib ]; then
-            cp ../opencode/dist/opencode-darwin-arm64/bin/libduckdb.dylib src-tauri/sidecars/libduckdb-aarch64-apple-darwin
-            echo "Copied libduckdb.dylib"
+          # Copy DuckDB CLI
+          if [ -f ../opencode/dist/duckdb/duckdb-universal-apple-darwin ]; then
+            cp ../opencode/dist/duckdb/duckdb-universal-apple-darwin src-tauri/sidecars/
+            chmod +x src-tauri/sidecars/duckdb-universal-apple-darwin
+            echo "Copied DuckDB CLI"
           fi
           bun x vite build
         env:
@@ -125,17 +147,6 @@ jobs:
           args: --target aarch64-apple-darwin --config src-tauri/tauri.conf.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Copy DuckDB dylib to app bundle
-        run: |
-          cd packages/desktop
-          APP_PATH="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/OpenCode Dev.app"
-          if [ -f src-tauri/sidecars/libduckdb-aarch64-apple-darwin ]; then
-            cp src-tauri/sidecars/libduckdb-aarch64-apple-darwin "$APP_PATH/Contents/MacOS/libduckdb.dylib"
-            echo "Copied libduckdb.dylib to app bundle"
-          else
-            echo "Warning: libduckdb.dylib not found"
-          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -181,10 +192,11 @@ jobs:
           mkdir -p src-tauri/sidecars
           cp ../opencode/dist/opencode-windows-x64/bin/opencode.exe src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           chmod +x src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe || true
-          # Copy DuckDB DLL to sidecars directory
-          if [ -f ../opencode/dist/opencode-windows-x64/bin/duckdb.dll ]; then
-            cp ../opencode/dist/opencode-windows-x64/bin/duckdb.dll src-tauri/sidecars/
-            echo "Copied duckdb.dll to sidecars/"
+          # Copy DuckDB CLI
+          if [ -f ../opencode/dist/duckdb/duckdb.exe ]; then
+            cp ../opencode/dist/duckdb/duckdb.exe src-tauri/sidecars/duckdb-x86_64-pc-windows-msvc.exe
+            chmod +x src-tauri/sidecars/duckdb-x86_64-pc-windows-msvc.exe || true
+            echo "Copied DuckDB CLI"
           fi
           bun x vite build
         env:
@@ -203,16 +215,6 @@ jobs:
           args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.conf.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Copy DuckDB DLL to Windows build output
-        shell: bash
-        run: |
-          cd packages/desktop
-          # Copy DLL to the release directory (where the main exe is)
-          if [ -f src-tauri/sidecars/duckdb.dll ]; then
-            cp src-tauri/sidecars/duckdb.dll src-tauri/target/x86_64-pc-windows-msvc/release/
-            echo "Copied duckdb.dll to release directory"
-          fi
 
       - uses: actions/upload-artifact@v4
         with:

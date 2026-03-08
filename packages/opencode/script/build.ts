@@ -146,33 +146,6 @@ const binaries: Record<string, string> = {}
 if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
-  await $`bun install --os="*" --cpu="*" @duckdb/node-api@${pkg.dependencies["@duckdb/node-api"]}`
-  
-  // Fix DuckDB .node file to use @executable_path for dylib lookup (macOS only)
-  // This must be done BEFORE Bun.build() embeds the .node files
-  // Only patch when running ON macOS (not when cross-compiling)
-  if (process.platform === "darwin") {
-    const darwinPlatforms = [
-      { os: "darwin", arch: "arm64", dylib: "libduckdb.dylib" },
-      { os: "darwin", arch: "x64", dylib: "libduckdb.dylib" },
-    ]
-    
-    for (const platform of darwinPlatforms) {
-      const nodeFile = path.resolve(
-        dir,
-        `node_modules/@duckdb/node-bindings-${platform.os}-${platform.arch}/duckdb.node`
-      )
-      
-      if (fs.existsSync(nodeFile)) {
-        console.log(`Patching ${nodeFile} to use @executable_path`)
-        try {
-          await $`install_name_tool -change @rpath/${platform.dylib} @executable_path/${platform.dylib} ${nodeFile}`
-        } catch (err) {
-          console.warn(`Warning: Could not patch ${nodeFile}: ${err}`)
-        }
-      }
-    }
-  }
 }
 for (const item of targets) {
   const name = [
@@ -224,63 +197,6 @@ for (const item of targets) {
   })
 
   await $`rm -rf ./dist/${name}/bin/tui`
-  
-  // Handle DuckDB dynamic library dependencies
-  if (item.os === "darwin") {
-    // macOS: Copy libduckdb.dylib and add rpath
-    const duckdbBindingsDir = path.resolve(
-      dir,
-      `node_modules/@duckdb/node-bindings-darwin-${item.arch}`
-    )
-    const dylibSource = path.join(duckdbBindingsDir, "libduckdb.dylib")
-    const dylibDest = `dist/${name}/bin/libduckdb.dylib`
-    const binaryPath = `dist/${name}/bin/opencode`
-    
-    if (fs.existsSync(dylibSource)) {
-      console.log(`  Copying libduckdb.dylib for ${name}`)
-      await $`cp ${dylibSource} ${dylibDest}`
-      
-      // Add rpath to the binary so it can find libduckdb.dylib
-      console.log(`  Adding rpath to binary for ${name}`)
-      try {
-        await $`install_name_tool -add_rpath @loader_path ${binaryPath}`
-      } catch (err) {
-        console.warn(`  Warning: Could not add rpath (might already exist): ${err}`)
-      }
-    } else {
-      console.warn(`  Warning: libduckdb.dylib not found at ${dylibSource}`)
-    }
-  } else if (item.os === "linux") {
-    // Linux: Copy libduckdb.so
-    const duckdbBindingsDir = path.resolve(
-      dir,
-      `node_modules/@duckdb/node-bindings-linux-${item.arch}`
-    )
-    const soSource = path.join(duckdbBindingsDir, "libduckdb.so")
-    const soDest = `dist/${name}/bin/libduckdb.so`
-    
-    if (fs.existsSync(soSource)) {
-      console.log(`  Copying libduckdb.so for ${name}`)
-      await $`cp ${soSource} ${soDest}`
-    } else {
-      console.warn(`  Warning: libduckdb.so not found at ${soSource}`)
-    }
-  } else if (item.os === "win32") {
-    // Windows: Copy duckdb.dll
-    const duckdbBindingsDir = path.resolve(
-      dir,
-      `node_modules/@duckdb/node-bindings-win32-${item.arch}`
-    )
-    const dllSource = path.join(duckdbBindingsDir, "duckdb.dll")
-    const dllDest = `dist/${name}/bin/duckdb.dll`
-    
-    if (fs.existsSync(dllSource)) {
-      console.log(`  Copying duckdb.dll for ${name}`)
-      await $`cp ${dllSource} ${dllDest}`
-    } else {
-      console.warn(`  Warning: duckdb.dll not found at ${dllSource}`)
-    }
-  }
   
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
