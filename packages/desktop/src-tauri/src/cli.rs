@@ -431,11 +431,20 @@ pub fn spawn_command(
             cmd
         } else {
             let sidecar = get_sidecar_path(app);
-            let mut cmd = Command::new(sidecar);
+            let mut cmd = Command::new(&sidecar);
             cmd.args(args.split_whitespace());
 
             for (key, value) in envs {
                 cmd.env(key, value);
+            }
+
+            // Add library search path for DuckDB dynamic library
+            if let Some(sidecar_dir) = sidecar.parent() {
+                if cfg!(target_os = "macos") {
+                    cmd.env("DYLD_LIBRARY_PATH", sidecar_dir);
+                } else if cfg!(target_os = "linux") {
+                    cmd.env("LD_LIBRARY_PATH", sidecar_dir);
+                }
             }
 
             cmd
@@ -456,6 +465,15 @@ pub fn spawn_command(
 
         for (key, value) in envs {
             cmd.env(key, value);
+        }
+
+        // Add library search path for DuckDB dynamic library
+        if let Some(sidecar_dir) = sidecar.parent() {
+            if cfg!(target_os = "macos") {
+                cmd.env("DYLD_LIBRARY_PATH", sidecar_dir);
+            } else if cfg!(target_os = "linux") {
+                cmd.env("LD_LIBRARY_PATH", sidecar_dir);
+            }
         }
 
         cmd
