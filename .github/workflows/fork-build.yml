@@ -126,6 +126,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Copy DuckDB dylib to app bundle
+        run: |
+          cd packages/desktop
+          APP_PATH="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/OpenCode Dev.app"
+          if [ -f src-tauri/sidecars/libduckdb-aarch64-apple-darwin ]; then
+            cp src-tauri/sidecars/libduckdb-aarch64-apple-darwin "$APP_PATH/Contents/MacOS/libduckdb.dylib"
+            echo "Copied libduckdb.dylib to app bundle"
+          else
+            echo "Warning: libduckdb.dylib not found"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: opencode-desktop-macos-arm64
