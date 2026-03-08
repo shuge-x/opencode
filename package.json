@@ -102,7 +102,14 @@
     "tree-sitter",
     "tree-sitter-bash",
     "web-tree-sitter",
-    "electron"
+    "electron",
+    "@duckdb/node-api",
+    "@duckdb/node-bindings",
+    "@duckdb/node-bindings-darwin-arm64",
+    "@duckdb/node-bindings-darwin-x64",
+    "@duckdb/node-bindings-linux-arm64",
+    "@duckdb/node-bindings-linux-x64",
+    "@duckdb/node-bindings-win32-x64"
   ],
   "overrides": {
     "@types/bun": "catalog:",
